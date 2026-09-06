@@ -193,23 +193,112 @@
   .burger.open span::before{transform:rotate(45deg);top:4px;}
   .burger.open span::after{transform:rotate(-45deg);top:4px;}
 
+  /* ---------- mobile menu: the page's index, timecoded ---------- */
   .mobile-nav{
     position:fixed;
     inset:0;
     z-index:99;
-    background:var(--black);
     display:flex;
     flex-direction:column;
-    align-items:flex-start;
-    justify-content:center;
-    gap:28px;
-    padding:24px 32px;
-    transform:translateY(-100%);
-    transition:transform .4s var(--ease);
+    justify-content:space-between;
+    padding:calc(env(safe-area-inset-top, 0px) + 88px) 26px calc(env(safe-area-inset-bottom, 0px) + 30px);
+    background:rgba(0,0,0,.72);
+    backdrop-filter:blur(34px) saturate(120%);
+    -webkit-backdrop-filter:blur(34px) saturate(120%);
+    opacity:0;
+    visibility:hidden;
+    transform:translateY(-14px);
+    transition:opacity .42s var(--ease), transform .5s var(--ease), visibility .42s;
   }
-  .mobile-nav.open{transform:translateY(0);}
-  .mobile-nav a{font-size:32px;font-weight:800;}
-  .mobile-nav .btn{margin-top:12px;}
+  .mobile-nav.open{
+    opacity:1;
+    visibility:visible;
+    transform:translateY(0);
+  }
+
+  .mnav-top{
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding-bottom:14px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+    font-family:'Azeret Mono','Menlo',monospace;
+    font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;
+    color:rgba(211,209,199,.4);
+  }
+  .mnav-clip{ color:var(--lime); }
+
+  .mnav-list{
+    list-style:none;margin:0;padding:0;
+    display:flex;flex-direction:column;
+    flex:1;justify-content:center;
+    gap:2px;
+  }
+  .mnav-list a{
+    position:relative;
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:baseline;
+    gap:16px;
+    padding:15px 0;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    /* each row slips up into place, one after the next */
+    opacity:0;
+    transform:translateY(16px);
+    transition:opacity .5s var(--ease), transform .55s var(--ease), color .3s ease;
+  }
+  .mobile-nav.open .mnav-list li:nth-child(1) a{ transition-delay:.10s; opacity:1; transform:none; }
+  .mobile-nav.open .mnav-list li:nth-child(2) a{ transition-delay:.17s; opacity:1; transform:none; }
+  .mobile-nav.open .mnav-list li:nth-child(3) a{ transition-delay:.24s; opacity:1; transform:none; }
+  .mobile-nav.open .mnav-list li:nth-child(4) a{ transition-delay:.31s; opacity:1; transform:none; }
+
+  .mnav-tc{
+    font-family:'Azeret Mono','Menlo',monospace;
+    font-style:normal;
+    font-size:10.5px;letter-spacing:.1em;
+    color:rgba(211,209,199,.42);
+    font-variant-numeric:tabular-nums;
+    transition:color .3s ease;
+  }
+  .mnav-list b{
+    font-size:clamp(30px,8.6vw,40px);
+    font-weight:800;
+    letter-spacing:-.03em;
+    line-height:1;
+  }
+  /* the lime tick that rides out on press */
+  .mnav-list s{
+    justify-self:end;
+    width:22px;height:1px;
+    background:var(--lime);
+    text-decoration:none;
+    transform:scaleX(0);
+    transform-origin:right center;
+    transition:transform .4s var(--ease);
+    box-shadow:0 0 8px rgba(214,255,63,.6);
+  }
+  .mnav-list a:active s,
+  .mnav-list a:focus-visible s{ transform:scaleX(1); }
+  .mnav-list a:active .mnav-tc,
+  .mnav-list a:focus-visible .mnav-tc{ color:var(--lime); }
+
+  .mnav-foot{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;
+    padding-top:20px;
+    border-top:1px solid rgba(255,255,255,.1);
+    opacity:0;transform:translateY(14px);
+    transition:opacity .5s var(--ease) .38s, transform .5s var(--ease) .38s;
+  }
+  .mobile-nav.open .mnav-foot{ opacity:1; transform:none; }
+  .mnav-handle{
+    font-family:'Azeret Mono','Menlo',monospace;
+    font-size:10px;letter-spacing:.14em;
+    color:rgba(211,209,199,.4);
+  }
+  .mnav-foot .btn{ padding:13px 24px;font-size:13px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .mobile-nav,.mnav-list a,.mnav-foot{ transition-duration:.001ms !important; }
+  }
 
   /* ---------- Hero ---------- */
   .hero{
@@ -1392,12 +1481,23 @@
   </div>
 </header>
 
-<nav class="mobile-nav" id="mobileNav">
-  <a href="#work">Portfolio</a>
-  <a href="#services">Services</a>
-  <a href="#process">Process</a>
-  <a href="#spec">Spec</a>
-  <a href="https://instagram.com/vvvis.studio" target="_blank" rel="noopener" class="btn btn-solid">DM to book</a>
+<nav class="mobile-nav" id="mobileNav" aria-label="Menu">
+  <div class="mnav-top">
+    <span class="mnav-kicker">Index</span>
+    <span class="mnav-clip" id="mnavClip">02:00</span>
+  </div>
+
+  <ul class="mnav-list">
+    <li><a href="#work"    data-sec="work"><i class="mnav-tc">--:--</i><b>Portfolio</b><s></s></a></li>
+    <li><a href="#services" data-sec="services"><i class="mnav-tc">--:--</i><b>Services</b><s></s></a></li>
+    <li><a href="#process"  data-sec="process"><i class="mnav-tc">--:--</i><b>Process</b><s></s></a></li>
+    <li><a href="#spec"     data-sec="spec"><i class="mnav-tc">--:--</i><b>Spec</b><s></s></a></li>
+  </ul>
+
+  <div class="mnav-foot">
+    <a href="https://instagram.com/vvvis.studio" target="_blank" rel="noopener" class="btn btn-solid">DM to book</a>
+    <span class="mnav-handle">@vvvis.studio</span>
+  </div>
 </nav>
 
 <main id="top">
@@ -2104,6 +2204,30 @@
     if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
     var hint = document.querySelector('#work .section-head p');
     if (hint) hint.textContent = 'Real edits, real projects. Hold a card to preview, tap to play.';
+  })();
+
+
+  /* menu rows carry the timecode of where that section actually sits */
+  (function(){
+    var rows = document.querySelectorAll('.mnav-list a[data-sec]');
+    if (!rows.length) return;
+    var CLIP = 120;                       // the page reads as a 2:00 clip
+
+    function stamp(){
+      var max = document.documentElement.scrollHeight - window.innerHeight;
+      if (max <= 0) return;
+      rows.forEach(function(a){
+        var sec = document.getElementById(a.getAttribute('data-sec'));
+        var tc  = a.querySelector('.mnav-tc');
+        if (!sec || !tc) return;
+        var pos = Math.min(Math.max(sec.offsetTop / max, 0), 1) * CLIP;
+        var m = Math.floor(pos / 60), ss = Math.floor(pos % 60);
+        tc.textContent = (m < 10 ? '0' + m : m) + ':' + (ss < 10 ? '0' + ss : ss);
+      });
+    }
+    window.addEventListener('load', stamp);
+    window.addEventListener('resize', stamp);
+    stamp();
   })();
 
   /* Footer year */
