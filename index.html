@@ -1221,6 +1221,107 @@
             box-decoration-break:clone;
     background:linear-gradient(180deg, transparent 62%, rgba(214,255,63,.22) 62%);
   }
+
+  /* ================= PROCESS AS AN EDIT TIMELINE ================= */
+  /* clip width is proportional to how long that stage actually takes,
+     so the lane itself tells you where the work lives. */
+  .track{ position:relative; }
+  .track-ruler{
+    display:flex;
+    justify-content:space-between;
+    padding:0 2px 9px;
+    font-family:'Azeret Mono','Menlo',monospace;
+    font-size:9px;letter-spacing:.16em;
+    color:rgba(211,209,199,.34);
+    border-bottom:1px solid rgba(255,255,255,.08);
+    margin-bottom:0;
+  }
+  .track-ruler span{ position:relative; }
+  .track-ruler span::after{
+    content:"";position:absolute;left:50%;top:calc(100% + 2px);
+    width:1px;height:6px;background:rgba(255,255,255,.14);
+  }
+  .track-ruler span:first-child::after{ left:0; }
+  .track-ruler span:last-child::after{ left:auto;right:0; }
+
+  .track-lane{
+    position:relative;
+    list-style:none;margin:0;padding:14px 0 0;
+    display:flex;align-items:stretch;gap:6px;
+  }
+  .clip{
+    position:relative;
+    flex:var(--span) 1 0;
+    min-width:0;
+    padding:26px 20px 24px;
+    border-radius:8px;
+    background:rgba(255,255,255,.032);
+    backdrop-filter:blur(14px) saturate(112%);
+    -webkit-backdrop-filter:blur(14px) saturate(112%);
+    border:1px solid rgba(255,255,255,.09);
+    overflow:hidden;
+    transition:background .4s var(--ease), border-color .4s var(--ease), transform .4s var(--ease);
+  }
+  .clip::after{                       /* sandblast, same surface language */
+    content:"";position:absolute;inset:0;
+    background-image:var(--grain-tex);
+    opacity:.09;mix-blend-mode:overlay;pointer-events:none;
+  }
+  .clip-tape{                         /* the colour label along a clip's head */
+    position:absolute;top:0;left:0;right:0;height:3px;
+    background:rgba(255,255,255,.22);
+  }
+  .clip.is-main{
+    background:rgba(214,255,63,.055);
+    border-color:rgba(214,255,63,.3);
+  }
+  .clip.is-main .clip-tape{ background:var(--lime); box-shadow:0 0 12px rgba(214,255,63,.5); }
+  .clip:hover{
+    transform:translateY(-3px);
+    border-color:rgba(214,255,63,.42);
+    background:rgba(255,255,255,.052);
+  }
+  .clip-dur{
+    display:block;
+    font-family:'Azeret Mono','Menlo',monospace;
+    font-size:9.5px;letter-spacing:.16em;
+    color:var(--lime);
+    margin-bottom:10px;
+  }
+  .clip h3{ font-size:18px;font-weight:700;letter-spacing:-.01em; }
+  .clip p{
+    margin-top:9px;font-size:13.5px;line-height:1.55;
+    color:var(--gray-light);
+  }
+  /* narrow clips drop their body copy rather than squeezing it to shreds */
+  .clip:not(.is-main) p{ display:none; }
+  @media (min-width:1180px){
+    .clip:not(.is-main) p{ display:block; }
+  }
+
+  .track-head{
+    position:absolute;top:0;bottom:0;left:0;width:1px;
+    background:var(--lime);
+    box-shadow:0 0 10px rgba(214,255,63,.8);
+    opacity:0;
+    transition:opacity .4s ease;
+    pointer-events:none;
+  }
+  .track-head::before{
+    content:"";position:absolute;top:-5px;left:50%;
+    width:9px;height:9px;border-radius:2px;
+    background:var(--lime);
+    transform:translateX(-50%) rotate(45deg);
+  }
+  .track.is-scrubbing .track-head{ opacity:1; }
+
+  @media (max-width:860px){
+    .track-ruler{ display:none; }
+    .track-lane{ flex-direction:column; gap:10px; padding-top:0; }
+    .clip{ flex:none; padding:20px 18px; }
+    .clip:not(.is-main) p{ display:block; }
+    .track-head{ display:none; }
+  }
 </style>
 </head>
 <body>
@@ -1492,7 +1593,7 @@
 
       <div class="services-grid reveal">
         <div class="service-card">
-          <span class="service-num">01</span>
+          <span class="service-num">9:16</span>
           <h3>Reels / Shorts</h3>
           <p>Fast cuts. Hooked in 3 seconds. Built for the scroll, not the skip.</p>
           <div class="service-list">
@@ -1500,7 +1601,7 @@
           </div>
         </div>
         <div class="service-card">
-          <span class="service-num">02</span>
+          <span class="service-num">16:9</span>
           <h3>YouTube</h3>
           <p>Long-form that keeps pace. Story-first editing that holds attention to the end.</p>
           <div class="service-list">
@@ -1508,7 +1609,7 @@
           </div>
         </div>
         <div class="service-card">
-          <span class="service-num">03</span>
+          <span class="service-num">9:16 · 1:1 · 16:9</span>
           <h3>Ads</h3>
           <p>Performance edits. Built to convert, tested to stop the thumb.</p>
           <div class="service-list">
@@ -1527,27 +1628,38 @@
         <p>Four steps. No back and forth.</p>
       </div>
 
-      <div class="process-track reveal">
-        <div class="process-step">
-          <div class="process-index">01</div>
-          <h3>Brief</h3>
-          <p>You send raw footage and goals. We lock the direction.</p>
+      <div class="track reveal" id="track">
+        <div class="track-ruler" aria-hidden="true">
+          <span>0:00</span><span>0:30</span><span>1:00</span><span>1:30</span><span>2:00</span>
         </div>
-        <div class="process-step">
-          <div class="process-index">02</div>
-          <h3>Edit</h3>
-          <p>We cut, pace and sound-design the first version.</p>
-        </div>
-        <div class="process-step">
-          <div class="process-index">03</div>
-          <h3>Revisions</h3>
-          <p>You review. We refine — fast, focused revisions.</p>
-        </div>
-        <div class="process-step">
-          <div class="process-index">04</div>
-          <h3>Delivery</h3>
-          <p>Final export, ready to post. Frame by frame, done right.</p>
-        </div>
+
+        <ol class="track-lane">
+          <li class="clip" style="--span:17">
+            <span class="clip-tape"></span>
+            <span class="clip-dur">0:20</span>
+            <h3>Brief</h3>
+            <p>You send raw footage and goals. We lock the direction.</p>
+          </li>
+          <li class="clip is-main" style="--span:50">
+            <span class="clip-tape"></span>
+            <span class="clip-dur">1:00</span>
+            <h3>Edit</h3>
+            <p>We cut, pace and sound-design the first version.</p>
+          </li>
+          <li class="clip" style="--span:20">
+            <span class="clip-tape"></span>
+            <span class="clip-dur">0:24</span>
+            <h3>Revisions</h3>
+            <p>You review. We refine — fast, focused revisions.</p>
+          </li>
+          <li class="clip" style="--span:13">
+            <span class="clip-tape"></span>
+            <span class="clip-dur">0:16</span>
+            <h3>Delivery</h3>
+            <p>Final export, ready to post.</p>
+          </li>
+          <div class="track-head" id="trackHead" aria-hidden="true"></div>
+        </ol>
       </div>
     </div>
   </section>
@@ -1881,6 +1993,32 @@
         cube.classList.remove('is-live');
       }, 1200);
     });
+  })();
+
+
+  /* the playhead rides the lane as the section passes through view */
+  (function(){
+    var track = document.getElementById('track');
+    var head  = document.getElementById('trackHead');
+    if (!track || !head) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var ticking = false;
+    function paint(){
+      var r = track.getBoundingClientRect();
+      var vh = window.innerHeight;
+      // 0 when the lane first meets the lower third, 1 when it clears the upper third
+      var p = (vh * 0.72 - r.top) / (r.height + vh * 0.42);
+      p = Math.max(0, Math.min(1, p));
+      track.classList.toggle('is-scrubbing', p > 0.01 && p < 0.99);
+      head.style.left = (p * 100).toFixed(2) + '%';
+      ticking = false;
+    }
+    window.addEventListener('scroll', function(){
+      if (!ticking){ ticking = true; requestAnimationFrame(paint); }
+    }, {passive:true});
+    window.addEventListener('resize', paint);
+    paint();
   })();
 
   /* Footer year */
