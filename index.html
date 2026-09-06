@@ -1340,6 +1340,15 @@
       transform:translateY(-50%) rotate(45deg);
     }
   }
+
+  /* a long press must not raise the OS callout / selection over a card */
+  .reel-card{
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .reel-card video{ pointer-events:none; }
 </style>
 </head>
 <body>
@@ -1884,7 +1893,57 @@
       });
     }
 
-    card.addEventListener('click', function(){ openPlayer(v, title); });
+    /* touch: press and hold to preview, lift to stop, plain tap still opens */
+    if (!fine && !reduceMotion){
+      var holdTimer = null, holding = false, sx = 0, sy = 0, moved = false;
+
+      card.addEventListener('touchstart', function(e){
+        var t = e.touches[0];
+        sx = t.clientX; sy = t.clientY;
+        moved = false; holding = false;
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(function(){
+          if (moved) return;                     // it turned into a scroll
+          holding = true;
+          if (liveCard && liveCard !== card) stopPreview(liveCard);
+          liveCard = card;
+          card.classList.add('is-live');
+          try{ v.currentTime = 0; }catch(err){}
+          v.play().catch(function(){ card.classList.remove('is-live'); });
+        }, 200);
+      }, {passive:true});
+
+      card.addEventListener('touchmove', function(e){
+        var t = e.touches[0];
+        if (Math.abs(t.clientX - sx) > 10 || Math.abs(t.clientY - sy) > 10){
+          moved = true;
+          clearTimeout(holdTimer);
+          if (holding){
+            holding = false;
+            if (liveCard === card) liveCard = null;
+            stopPreview(card);
+          }
+        }
+      }, {passive:true});
+
+      function releaseHold(){
+        clearTimeout(holdTimer);
+        if (!holding) return;
+        holding = false;
+        if (liveCard === card) liveCard = null;
+        stopPreview(card);
+        /* swallow the click that follows a hold, so the player doesn't pop open */
+        card.dataset.heldOpen = '1';
+        setTimeout(function(){ delete card.dataset.heldOpen; }, 400);
+      }
+      card.addEventListener('touchend', releaseHold);
+      card.addEventListener('touchcancel', releaseHold);
+    }
+
+    card.addEventListener('click', function(){
+      if (card.dataset.heldOpen) return;   // the finger was previewing, not tapping
+      openPlayer(v, title);
+    });
     card.setAttribute('tabindex', '0');
     card.setAttribute('role', 'button');
     card.setAttribute('aria-label', 'Play ' + title);
@@ -1895,34 +1954,6 @@
       }
     });
   });
-
-  /* ---- touch devices have no hover, so the card in view previews itself ---- */
-  if (!fine && !reduceMotion && 'IntersectionObserver' in window){
-    var seen = new Map();
-    var vio = new IntersectionObserver(function(entries){
-      entries.forEach(function(e){ seen.set(e.target, e.intersectionRatio); });
-
-      // pick the single most-visible card and let only that one run
-      var best = null, bestRatio = 0;
-      seen.forEach(function(ratio, card){
-        if (ratio > bestRatio){ bestRatio = ratio; best = card; }
-      });
-
-      if (bestRatio < 0.55) best = null;
-      if (best === liveCard) return;
-
-      if (liveCard) stopPreview(liveCard);
-      liveCard = best;
-      if (best){
-        var bv = best.querySelector('.reel-video');
-        best.classList.add('is-live');
-        try{ bv.currentTime = 0; }catch(err){}
-        bv.play().catch(function(){ best.classList.remove('is-live'); });
-      }
-    }, {threshold:[0, .25, .55, .8, 1]});
-
-    cards.forEach(function(c){ vio.observe(c); });
-  }
 
   /* ---- lightbox ---- */
   var lb = document.getElementById('lightbox');
@@ -2065,6 +2096,14 @@
     }, {passive:true});
     window.addEventListener('resize', paint);
     paint();
+  })();
+
+
+  /* the hold gesture is invisible unless we say so */
+  (function(){
+    if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+    var hint = document.querySelector('#work .section-head p');
+    if (hint) hint.textContent = 'Real edits, real projects. Hold a card to preview, tap to play.';
   })();
 
   /* Footer year */
