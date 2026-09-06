@@ -1085,6 +1085,7 @@
     padding:22px 0 26px;
   }
   .cube{
+    --d:104px;
     position:relative;
     display:inline-block;
     transform-style:preserve-3d;
@@ -1177,10 +1178,14 @@
 
   .cube .tagline{ position:relative; display:inline-block; margin-top:0; }
 
+  /* the cube stays on phones too — just shallower, and it keeps its slow drift */
   @media (max-width:760px){
-    .cube{ transform:none; animation:none; }
-    .cube-stage{ perspective:none; padding:6px 0 10px; }
-    .cf,.cube-haze{ display:none; }
+    .cube{ --d:46px; }
+    .cube-stage{ perspective:760px; padding:14px 0 18px; }
+  }
+  @media (max-width:420px){
+    .cube{ --d:34px; }
+    .cube-stage{ perspective:620px; padding:10px 0 14px; }
   }
   @media (prefers-reduced-motion: reduce){
     .cube{ animation:none; }
@@ -1288,7 +1293,7 @@
         Vis Studio
       </h1>
       <div class="cube-stage">
-        <div class="cube" id="cube" style="--d:104px">
+        <div class="cube" id="cube">
           <span class="cf back"></span>
           <span class="cf left"></span>
           <span class="cf right"></span>
