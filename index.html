@@ -1124,8 +1124,8 @@
     border-top-color:rgba(255,255,255,.24);
     border-left-color:rgba(255,255,255,.17);
     border-bottom-color:rgba(0,0,0,.5);
-    backdrop-filter:blur(4px) saturate(115%);
-    -webkit-backdrop-filter:blur(4px) saturate(115%);
+    /* no backdrop blur here: the words live *behind* this pane, so any blur
+       lands straight on them. the pane reads as glass from its edges alone. */
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.12),
       0 0 34px rgba(214,255,63,.03);
@@ -1300,7 +1300,9 @@
   }
 
   .track-head{
-    position:absolute;top:0;bottom:0;left:0;width:1px;
+    position:absolute;top:0;bottom:0;
+    left:calc(var(--p,0) * 100%);
+    width:1px;
     background:var(--lime);
     box-shadow:0 0 10px rgba(214,255,63,.8);
     opacity:0;
@@ -1317,10 +1319,26 @@
 
   @media (max-width:860px){
     .track-ruler{ display:none; }
-    .track-lane{ flex-direction:column; gap:10px; padding-top:0; }
+    .track-lane{
+      flex-direction:column; gap:10px;
+      padding:0 0 0 26px;
+    }
+    .track-lane::before{                /* the lane turns on its side */
+      content:"";position:absolute;
+      left:8px;top:4px;bottom:4px;width:1px;
+      background:rgba(255,255,255,.11);
+    }
     .clip{ flex:none; padding:20px 18px; }
     .clip:not(.is-main) p{ display:block; }
-    .track-head{ display:none; }
+    /* playhead runs top-to-bottom instead of left-to-right */
+    .track-head{
+      left:3px; top:calc(var(--p,0) * 100%);
+      bottom:auto; width:11px; height:1px;
+    }
+    .track-head::before{
+      top:50%; left:-3px;
+      transform:translateY(-50%) rotate(45deg);
+    }
   }
 </style>
 </head>
@@ -1878,6 +1896,34 @@
     });
   });
 
+  /* ---- touch devices have no hover, so the card in view previews itself ---- */
+  if (!fine && !reduceMotion && 'IntersectionObserver' in window){
+    var seen = new Map();
+    var vio = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){ seen.set(e.target, e.intersectionRatio); });
+
+      // pick the single most-visible card and let only that one run
+      var best = null, bestRatio = 0;
+      seen.forEach(function(ratio, card){
+        if (ratio > bestRatio){ bestRatio = ratio; best = card; }
+      });
+
+      if (bestRatio < 0.55) best = null;
+      if (best === liveCard) return;
+
+      if (liveCard) stopPreview(liveCard);
+      liveCard = best;
+      if (best){
+        var bv = best.querySelector('.reel-video');
+        best.classList.add('is-live');
+        try{ bv.currentTime = 0; }catch(err){}
+        bv.play().catch(function(){ best.classList.remove('is-live'); });
+      }
+    }, {threshold:[0, .25, .55, .8, 1]});
+
+    cards.forEach(function(c){ vio.observe(c); });
+  }
+
   /* ---- lightbox ---- */
   var lb = document.getElementById('lightbox');
   var lbVideo = document.getElementById('lbVideo');
@@ -2011,7 +2057,7 @@
       var p = (vh * 0.72 - r.top) / (r.height + vh * 0.42);
       p = Math.max(0, Math.min(1, p));
       track.classList.toggle('is-scrubbing', p > 0.01 && p < 0.99);
-      head.style.left = (p * 100).toFixed(2) + '%';
+      track.style.setProperty('--p', p.toFixed(4));
       ticking = false;
     }
     window.addEventListener('scroll', function(){
