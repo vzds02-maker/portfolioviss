@@ -1195,7 +1195,7 @@
     --d:104px;
     position:relative;
     display:inline-block;
-    cursor:default; user-select:none;
+    cursor:default; user-select:none; -webkit-user-select:none; -webkit-touch-callout:none;
     transform-style:preserve-3d;
     transform:rotateX(7deg) rotateY(-19deg);
     transition:transform 1s var(--ease);
@@ -2265,7 +2265,7 @@
     /* only spend frames while the hero is on screen */
     if ('IntersectionObserver' in window){
       new IntersectionObserver(function(es){
-        visible = es[0].isIntersecting;
+        visible = es[es.length - 1].isIntersecting;
         visible ? start() : stop();
       }, {threshold:0}).observe(cube);
     } else start();
@@ -2286,12 +2286,14 @@
     }
     hero.addEventListener('touchstart', function(e){
       var t = e.touches[0];
+      if (!t) return;
       sx = t.clientX; sy = t.clientY; st = e.timeStamp;
       onCube = cube.contains(e.target);
       steer(t);
     }, {passive:true});
     hero.addEventListener('touchmove', function(e){
       var t = e.touches[0];
+      if (!t) return;
       steer(t);
       /* a sideways drag that started on the cube turns it instead of scrolling */
       if (onCube && e.cancelable){
