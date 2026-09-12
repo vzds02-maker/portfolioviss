@@ -1265,15 +1265,63 @@
     filter:blur(16px);
   }
 
-  .cube .tagline{ position:relative; display:inline-block; margin-top:0; }
+  .cube .tagline{
+    position:relative; display:inline-block; margin-top:0;
+    --step:2.6px;                      /* distance between extrusion slices */
+    transform-style:preserve-3d;
+    text-shadow:
+      0 1px 0 rgba(255,255,255,.28),   /* bevel catch-light on the top edge */
+      0 0 26px rgba(214,255,63,.22);
+  }
+  /* the words get real depth: a stack of copies sits behind the face, each a
+     slice further back along Z, so the extrusion turns with the cube */
+  .cube .tagline .ex{
+    position:absolute; inset:0;
+    white-space:nowrap; pointer-events:none; user-select:none;
+    text-shadow:none;
+    transform:translateZ(calc(var(--i) * var(--step) * -1));
+    backface-visibility:hidden;
+  }
+  /* gloss: a copy a hair in front of the face, filled with a top-edge
+     highlight and a slow diagonal sheen that sweeps across the letters */
+  .cube .tagline .gl{
+    position:absolute; inset:0;
+    white-space:nowrap; pointer-events:none; user-select:none;
+    text-shadow:none;
+    color:transparent;
+    -webkit-background-clip:text; background-clip:text;
+    background-image:
+      linear-gradient(115deg,
+        rgba(255,255,255,0) 30%, rgba(255,255,255,.55) 45%,
+        rgba(255,255,255,.85) 50%, rgba(255,255,255,.55) 55%,
+        rgba(255,255,255,0) 70%),
+      linear-gradient(180deg,
+        rgba(255,255,255,.62) 0%, rgba(255,255,255,.28) 30%,
+        rgba(255,255,255,0) 50%, rgba(0,0,0,0) 74%, rgba(0,0,0,.28) 100%);
+    background-size:260% 100%, 100% 100%;
+    background-position:120% 0, 0 0;
+    background-repeat:no-repeat;
+    transform:translateZ(.6px);
+    animation:taglineSheen 7s cubic-bezier(.6,0,.2,1) 2.4s infinite;
+  }
+  @keyframes taglineSheen{
+    0%   { background-position:120% 0, 0 0; }
+    28%  { background-position:-120% 0, 0 0; }
+    100% { background-position:-120% 0, 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .cube .tagline .gl{ animation:none; background-position:-120% 0, 0 0; }
+  }
 
   /* the cube stays on phones too — just shallower, and it keeps its slow drift */
   @media (max-width:760px){
     .cube{ --d:46px; }
+    .cube .tagline{ --step:1.2px; }
     .cube-stage{ perspective:760px; padding:14px 0 18px; }
   }
   @media (max-width:420px){
     .cube{ --d:34px; }
+    .cube .tagline{ --step:.9px; }
     .cube-stage{ perspective:620px; padding:10px 0 14px; }
   }
   @media (prefers-reduced-motion: reduce){
@@ -2135,6 +2183,31 @@
     paint();
   })();
 
+
+  /* extrude the tagline: twelve copies stacked behind the face, shading from
+     a muted lime at the front of the stack down to near-black at the back */
+  (function(){
+    var t = document.querySelector('.cube .tagline');
+    if (!t) return;
+    var text = t.textContent, n = 12;
+    var a = [128,158,26], b = [30,38,4];
+    for (var i = 1; i <= n; i++){
+      var k = (i - 1) / (n - 1);
+      var c = a.map(function(v, j){ return Math.round(v + (b[j] - v) * k); });
+      var s = document.createElement('span');
+      s.className = 'ex';
+      s.setAttribute('aria-hidden', 'true');
+      s.style.setProperty('--i', i);
+      s.style.color = 'rgb(' + c.join(',') + ')';
+      s.textContent = text;
+      t.appendChild(s);
+    }
+    var g = document.createElement('span');
+    g.className = 'gl';
+    g.setAttribute('aria-hidden', 'true');
+    g.textContent = text;
+    t.appendChild(g);
+  })();
 
   /* the cube turns to follow the cursor */
   (function(){
