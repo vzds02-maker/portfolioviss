@@ -726,8 +726,24 @@
 
   @media (max-width:600px){
     .reel-grid,.placeholder-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
-    .hero-stats{grid-template-columns:repeat(3,1fr);gap:14px;}
+    .hero{padding:124px 0 64px;}
+    .hero .eyebrow{margin-bottom:16px;}
+    .hero-sub{margin-top:22px;font-size:17px;max-width:none;}
+    /* two equal buttons on one row */
+    .hero-actions{margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .hero-actions .btn{width:100%;padding:15px 12px;}
+    .hero-note{margin-top:20px;}
+    /* stats become a spec list: number and label share a line */
+    .hero-stats{
+      margin-top:44px;display:flex;flex-direction:column;gap:0;
+      border-top:1px solid rgba(255,255,255,.15);
+    }
+    .hero-stats div{
+      display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+      padding:12px 0;border-top:0;border-bottom:1px solid rgba(255,255,255,.1);
+    }
     .hero-stats strong{font-size:22px;}
+    .hero-stats span{text-align:right;}
     .section-head{flex-direction:column;align-items:flex-start;}
     .footer-links{gap:36px;}
   }
@@ -736,6 +752,8 @@
     .reel-grid,.placeholder-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
     .wrap{padding:0 18px;}
     .btn{padding:14px 22px;font-size:14px;}
+    .hero-note{font-size:12px;}
+    .status-pill{padding:8px 13px 8px 11px;gap:8px;}
   }
 
   /* ================= EDIT-BAY INTERACTIONS ================= */
@@ -1286,14 +1304,27 @@
 
   /* the cube stays on phones too — just shallower, and it keeps its slow drift */
   @media (max-width:760px){
-    .cube{ --d:46px; }
-    .cube .tagline{ --step:1.2px; }
-    .cube-stage{ perspective:760px; padding:14px 0 18px; }
+    .cube{ --d:58px; }
+    .cube .tagline{ --step:1.6px; }
+    .cube-stage{ perspective:820px; padding:16px 0 20px; }
   }
   @media (max-width:420px){
-    .cube{ --d:34px; }
-    .cube .tagline{ --step:.9px; }
-    .cube-stage{ perspective:620px; padding:10px 0 14px; }
+    .cube{ --d:44px; }
+    .cube .tagline{ --step:1.25px; }
+    .cube-stage{ perspective:680px; padding:12px 0 16px; }
+  }
+  /* on touch devices the cube is driven frame-by-frame from JS: drift, finger,
+     gyroscope and scroll all blend into one motion, so CSS stays out of it */
+  .cube.is-driven{ animation:none; transition:none; }
+  /* a tap kicks the cube and the front pane flashes lime for a beat */
+  .cube .cf.front{ transition:box-shadow .5s ease, border-color .5s ease; }
+  .cube.is-kicked .cf.front{
+    transition:none;
+    border-color:rgba(214,255,63,.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.2),
+      inset 0 0 40px rgba(214,255,63,.12),
+      0 0 60px rgba(214,255,63,.22);
   }
   @media (prefers-reduced-motion: reduce){
     .cube{ animation:none; }
@@ -2173,6 +2204,150 @@
       s.textContent = text;
       t.appendChild(s);
     }
+  })();
+
+  /* touch devices: the cube is alive under your hands.
+     - it drifts on its own, like on desktop
+     - a finger anywhere on the hero steers it (page still scrolls)
+     - a tap on the cube kicks it — springy wobble + lime flash
+     - the gyroscope tilts it with the phone (iOS asks once, on the first tap)
+     - scrolling leans it back
+     all of it is blended in one rAF loop so nothing fights. */
+  (function(){
+    var cube = document.getElementById('cube');
+    if (!cube) return;
+    if (window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var hero  = document.querySelector('.hero') || cube;
+    var BASE_X = 7, BASE_Y = -19;
+    var cur   = {x:0, y:0};              /* smoothed offset on top of BASE */
+    var touch = {x:0, y:0};
+    var gyro  = {x:0, y:0}, gyroOn = false, beta0 = null;
+    var kick  = {x:0, y:0}, kv = {x:0, y:0};
+    var lean  = 0;
+    var kickSign = 1;
+    var running = false, visible = true, last = 0;
+
+    cube.classList.add('is-driven');
+
+    function frame(now){
+      if (!running) return;
+      var dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+      var t  = now / 1000;
+
+      /* the same slow drift the CSS idle gives on desktop */
+      var driftX = Math.sin(t * 0.42) * -2.2;
+      var driftY = Math.sin(t * 0.30) * 5;
+
+      /* damped spring for the tap kick */
+      var K = 140, C = 5.5;
+      kv.y += (-K * kick.y - C * kv.y) * dt;  kick.y += kv.y * dt;
+      kv.x += (-K * kick.x - C * kv.x) * dt;  kick.x += kv.x * dt;
+
+      var tx = driftX + touch.x + gyro.x + kick.x + lean;
+      var ty = driftY + touch.y + gyro.y + kick.y;
+      cur.x += (tx - cur.x) * 0.14;
+      cur.y += (ty - cur.y) * 0.14;
+
+      cube.style.transform =
+        'rotateX(' + (BASE_X + cur.x).toFixed(2) + 'deg) ' +
+        'rotateY(' + (BASE_Y + cur.y).toFixed(2) + 'deg)';
+      requestAnimationFrame(frame);
+    }
+    function start(){
+      if (running || !visible || document.hidden) return;
+      running = true; last = performance.now();
+      requestAnimationFrame(frame);
+    }
+    function stop(){ running = false; }
+
+    /* only spend frames while the hero is on screen */
+    if ('IntersectionObserver' in window){
+      new IntersectionObserver(function(es){
+        visible = es[0].isIntersecting;
+        visible ? start() : stop();
+      }, {threshold:0}).observe(cube);
+    } else start();
+    document.addEventListener('visibilitychange', function(){
+      document.hidden ? stop() : start();
+    });
+
+    /* ---- finger steers the cube from anywhere on the hero ---- */
+    var sx, sy, st, onCube = false;
+    function steer(t){
+      var r  = cube.getBoundingClientRect();
+      var px = (t.clientX - (r.left + r.width/2))  / (window.innerWidth/2);
+      var py = (t.clientY - (r.top  + r.height/2)) / (window.innerHeight/2);
+      px = Math.max(-1, Math.min(1, px));
+      py = Math.max(-1, Math.min(1, py));
+      touch.y =  px * 30;
+      touch.x = -py * 16;
+    }
+    hero.addEventListener('touchstart', function(e){
+      var t = e.touches[0];
+      sx = t.clientX; sy = t.clientY; st = e.timeStamp;
+      onCube = cube.contains(e.target);
+      steer(t);
+    }, {passive:true});
+    hero.addEventListener('touchmove', function(e){
+      var t = e.touches[0];
+      steer(t);
+      /* a sideways drag that started on the cube turns it instead of scrolling */
+      if (onCube && e.cancelable){
+        var dx = t.clientX - sx, dy = t.clientY - sy;
+        if (Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 8) e.preventDefault();
+      }
+    }, {passive:false});
+    function letGo(e){
+      touch.x = 0; touch.y = 0;
+      var t = e.changedTouches && e.changedTouches[0];
+      if (onCube && t){
+        var moved = Math.hypot(t.clientX - sx, t.clientY - sy);
+        if (moved < 10 && e.timeStamp - st < 350) tap();
+      }
+      onCube = false;
+    }
+    hero.addEventListener('touchend', letGo);
+    hero.addEventListener('touchcancel', letGo);
+
+    /* ---- tap: kick + flash, and the first tap unlocks the gyroscope on iOS ---- */
+    function tap(){
+      kickSign = -kickSign;
+      kv.y += 640 * kickSign;
+      kv.x += 170;
+      cube.classList.add('is-kicked');
+      setTimeout(function(){ cube.classList.remove('is-kicked'); }, 140);
+      askGyro();
+    }
+
+    /* ---- gyroscope ---- */
+    function onOrient(e){
+      if (e.beta == null || e.gamma == null) return;
+      if (beta0 == null) beta0 = e.beta;          /* whatever angle you hold it at is "flat" */
+      var g = Math.max(-35, Math.min(35, e.gamma));
+      var b = Math.max(-35, Math.min(35, e.beta - beta0));
+      gyro.y =  g * 0.8;
+      gyro.x = -b * 0.55;
+    }
+    function askGyro(){
+      if (gyroOn || !window.DeviceOrientationEvent) return;
+      if (typeof DeviceOrientationEvent.requestPermission === 'function'){
+        DeviceOrientationEvent.requestPermission().then(function(r){
+          if (r === 'granted'){ gyroOn = true; window.addEventListener('deviceorientation', onOrient); }
+        }).catch(function(){});
+      } else {
+        gyroOn = true; window.addEventListener('deviceorientation', onOrient);
+      }
+    }
+    /* android & co. need no permission — switch it on right away */
+    if (window.DeviceOrientationEvent && typeof DeviceOrientationEvent.requestPermission !== 'function') askGyro();
+
+    /* ---- scroll leans the cube back ---- */
+    window.addEventListener('scroll', function(){
+      var h = hero.offsetHeight || 1;
+      lean = Math.max(0, Math.min(1, window.scrollY / h)) * 22;
+    }, {passive:true});
   })();
 
   /* the cube turns to follow the cursor */
