@@ -1,0 +1,43 @@
+<!doctype html><html><head>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<style>body{background:#555;margin:20px;font-family:Manrope}canvas{margin:6px;max-width:300px}</style></head><body>
+<script>
+const GREEN='#2e5c3c';
+function pill(text,weight,size,padx,h,r){
+  const m=document.createElement('canvas').getContext('2d');m.font=`${weight} ${size}px Manrope`;
+  const w=Math.ceil(m.measureText(text).width)+padx*2;
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');
+  g.fillStyle=GREEN;g.beginPath();g.roundRect(0,0,w,h,r);g.fill();
+  g.fillStyle='#fff';g.font=`${weight} ${size}px Manrope`;g.textAlign='center';g.textBaseline='middle';
+  g.fillText(text,w/2,h/2+1);document.body.append(c);return c;
+}
+function handle(text){
+  const c=document.createElement('canvas');c.width=800;c.height=90;const g=c.getContext('2d');
+  g.fillStyle='#161616';g.font='italic 600 52px "Cormorant Garamond"';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(text,400,46);document.body.append(c);return c;
+}
+function bg(){
+  const W=1080,H=1920,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+  g.fillStyle='#e6e6e6';g.fillRect(0,0,W,H);
+  // soft white swooshes like the reference
+  g.save();g.filter='blur(70px)';
+  const blob=(x,y,rx,ry,rot,a,col)=>{g.save();g.translate(x,y);g.rotate(rot);g.globalAlpha=a;g.fillStyle=col;g.beginPath();g.ellipse(0,0,rx,ry,0,0,Math.PI*2);g.fill();g.restore();};
+  blob(180,260,520,220,-0.55,0.85,'#fafafa');
+  blob(980,120,420,180,0.5,0.7,'#f7f7f7');
+  blob(560,1080,700,260,-0.45,0.55,'#f4f4f4');
+  blob(120,1500,480,240,0.35,0.8,'#fbfbfb');
+  blob(960,1760,520,220,-0.3,0.75,'#f8f8f8');
+  blob(760,700,300,900,-0.35,0.35,'#d9d9d9');
+  g.restore();
+  document.body.append(c);return c;
+}
+window.ready=(async()=>{
+  await document.fonts.load('700 38px Manrope');await document.fonts.load('italic 600 52px "Cormorant Garamond"');
+  window.out={
+    pillraw:pill('Raw file','700',38,26,60,9).toDataURL(),
+    pilledit:pill('My Edit','700',38,26,60,9).toDataURL(),
+    handle:handle('@vvvis.studio').toDataURL(),
+    bg:bg().toDataURL(),
+  };return 'ok';})();
+</script></body></html>
