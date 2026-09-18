@@ -1,0 +1,26 @@
+<!doctype html><html><head>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>body{background:#333;margin:20px;font-family:Manrope}</style></head><body>
+<script>
+function pill(text,w,h,r,weight,size,dy){
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');
+  g.fillStyle='#D6FF3F';g.beginPath();g.roundRect(0,0,w,h,r);g.fill();
+  g.fillStyle='#000';g.font=`${weight} ${size}px Manrope`;g.textAlign='center';g.textBaseline='middle';
+  g.fillText(text,w/2,h/2+dy);document.body.append(c);return c;
+}
+function label(text,w,h,weight,size,color){
+  const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d');
+  g.fillStyle=color;g.font=`${weight} ${size}px Manrope`;g.textAlign='center';g.textBaseline='middle';
+  g.fillText(text,w/2,h/2+2);document.body.append(c);return c;
+}
+window.ready=(async()=>{
+  await document.fonts.load('700 42px Manrope');await document.fonts.load('600 38px Manrope');await document.fonts.load('800 42px Manrope');
+  const g=document.createElement('canvas').getContext('2d');g.font='700 42px Manrope';
+  const wr=Math.ceil(g.measureText('Raw file').width)+64, we=Math.ceil(g.measureText('My Edit').width)+64;
+  window.out={
+    pillraw:{w:wr,h:80,data:pill('Raw file',wr,80,40,'700',42,1).toDataURL()},
+    pilledit:{w:we,h:80,data:pill('My Edit',we,80,40,'700',42,1).toDataURL()},
+    handle:{w:700,h:70,data:label('@vvvis.studio',700,70,'600',38,'rgba(255,255,255,0.72)').toDataURL()},
+  };return 'ok';})();
+</script></body></html>
