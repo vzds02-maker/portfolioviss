@@ -1,0 +1,21 @@
+<!doctype html><body style="margin:0;background:#222;color:#fff;font:12px monospace">
+<script>
+async function sheet(src,times){
+ const h=document.createElement('h3');h.textContent=src;document.body.append(h);
+ const g=document.createElement('div');g.style.cssText='display:grid;grid-template-columns:repeat(7,1fr);gap:4px';document.body.append(g);
+ const v=document.createElement('video');v.src=src;v.muted=true;v.preload='auto';
+ await new Promise(r=>v.addEventListener('loadedmetadata',r));
+ for(const t of times){
+  const p=new Promise(r=>v.addEventListener('seeked',r,{once:true}));
+  v.currentTime=t; await p; await new Promise(r=>setTimeout(r,120));
+  const c=document.createElement('canvas');c.width=160;c.height=284;c.getContext('2d').drawImage(v,0,0,160,284);
+  const l=document.createElement('div');l.textContent=t+'s';
+  const w=document.createElement('div');w.append(c,l);g.append(w);}
+ return {w:v.videoWidth,h:v.videoHeight,d:v.duration};
+}
+(async()=>{
+ window.m1=await sheet('/.claude/edit.mp4',[0.3,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32]);
+ window.m2=await sheet('/.claude/edit2.mp4',[0.3,2,4,6,8,10,12,14,16,18]);
+ window.done=true;
+})();
+</script></body>
